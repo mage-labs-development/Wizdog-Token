@@ -166,15 +166,8 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
      * The default value of {decimals} is 18. To select a different value for
      * {decimals} you should overload it.
      *
-     * All two of these values are immutable: they can only be set once during
-     * construction.
      */
-    constructor(string memory name_, string memory symbol_) {
-        _name = name_;
-        _symbol = symbol_;
-    }
-
-    function constructor1 (string memory name_, string memory symbol_) internal {
+    function ERCConstructor (string memory name_, string memory symbol_) internal {
         _name = name_;
         _symbol = symbol_;
     }

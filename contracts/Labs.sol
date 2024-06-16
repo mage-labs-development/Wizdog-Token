@@ -70,10 +70,10 @@ contract LABS is ERC20, Proxiable, LABSDataLayout {
     bool private swapping;
 
     address payable public devWallet;
-    uint256 public buyTax = 5;
-    uint256 public sellTax = 5;
-    uint256 public swapTokensAtAmount = 100000 * 10 ** decimals(); // Minimum tokens required for swap
-    uint256 public maxTransfer = 50000000 * 10 ** decimals(); // Maximum transfer limit
+    uint256 public buyTax;
+    uint256 public sellTax;
+    uint256 public swapTokensAtAmount; // Minimum tokens required for swap
+    uint256 public maxTransfer; // Maximum transfer limit
 
     modifier _onlyOwner() {
         require(msg.sender == owner);
@@ -90,16 +90,21 @@ contract LABS is ERC20, Proxiable, LABSDataLayout {
     event ExcludeFromFees(address indexed account, bool isExcluded);
     event ExcludeMultipleAccountsFromFees(address[] accounts, bool isExcluded);
 
-    constructor() ERC20("LABS", "LABS") {
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
         
     }
 
     function LABSConstructor() public {
         require(!initialized);
-        constructor1("LABS", "LABS");
+        ERCConstructor("LABS", "LABS");
         owner = msg.sender;
         devWallet = payable(msg.sender);
         _mint(msg.sender, 1000000000 * 10 ** 18);
+        buyTax = 5;
+        sellTax = 5;
+        swapTokensAtAmount = 100000 * 10 ** decimals(); // Minimum tokens required for swap
+        maxTransfer = 50000000 * 10 ** decimals(); // Maximum transfer limit
 
         // exclude from paying fees or having max transaction amount
         excludeFromFees(owner, true);

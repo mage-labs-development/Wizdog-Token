@@ -1,0 +1,385 @@
+{
+  "manifestVersion": "3.2",
+  "proxies": [
+    {
+      "address": "0xC5aC0E27d4B19216263eFff4449Db3095d77eAbF",
+      "txHash": "0xc29112874073832db839e0a12f3e26ffda05fa4772c27cf2bec6a8d6e8ac783a",
+      "kind": "transparent"
+    },
+    {
+      "address": "0x86c243DD71BA1947E993942F94ee28FFdb44065c",
+      "txHash": "0x3f762cdf464ba05e90da765c7b0be8211c63ff9391906d90c63871131bf3e6a8",
+      "kind": "transparent"
+    }
+  ],
+  "impls": {
+    "991903044b1af99afc1a12970450871f0ccfbcbf3fde37ee57c11f065bc4fb0d": {
+      "address": "0xb396279D44401a864A2D4707B39623a72212da72",
+      "txHash": "0x83a7d812fdda7a6da1bdf6998146c2007e382fb6c9bebf6d74aeff0d774bbf92",
+      "layout": {
+        "solcVersion": "0.8.24",
+        "storage": [
+          {
+            "label": "_balances",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_mapping(t_address,t_uint256)",
+            "contract": "ERC20",
+            "src": "contracts\\ERC20.sol:154"
+          },
+          {
+            "label": "_allowances",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_mapping(t_address,t_mapping(t_address,t_uint256))",
+            "contract": "ERC20",
+            "src": "contracts\\ERC20.sol:156"
+          },
+          {
+            "label": "_totalSupply",
+            "offset": 0,
+            "slot": "2",
+            "type": "t_uint256",
+            "contract": "ERC20",
+            "src": "contracts\\ERC20.sol:158"
+          },
+          {
+            "label": "_name",
+            "offset": 0,
+            "slot": "3",
+            "type": "t_string_storage",
+            "contract": "ERC20",
+            "src": "contracts\\ERC20.sol:160"
+          },
+          {
+            "label": "_symbol",
+            "offset": 0,
+            "slot": "4",
+            "type": "t_string_storage",
+            "contract": "ERC20",
+            "src": "contracts\\ERC20.sol:161"
+          },
+          {
+            "label": "initialized",
+            "offset": 0,
+            "slot": "5",
+            "type": "t_bool",
+            "contract": "LibraryLockDataLayout",
+            "src": "contracts\\Labs.sol:40"
+          },
+          {
+            "label": "isDirect",
+            "offset": 1,
+            "slot": "5",
+            "type": "t_bool",
+            "contract": "LibraryLockDataLayout",
+            "src": "contracts\\Labs.sol:41"
+          },
+          {
+            "label": "owner",
+            "offset": 2,
+            "slot": "5",
+            "type": "t_address",
+            "contract": "LABSDataLayout",
+            "src": "contracts\\Labs.sol:63"
+          },
+          {
+            "label": "uniswapV2Router",
+            "offset": 0,
+            "slot": "6",
+            "type": "t_contract(IUniswapV2Router02)1832",
+            "contract": "LABSDataLayout",
+            "src": "contracts\\Labs.sol:64"
+          },
+          {
+            "label": "uniswapV2Pair",
+            "offset": 0,
+            "slot": "7",
+            "type": "t_address",
+            "contract": "LABSDataLayout",
+            "src": "contracts\\Labs.sol:65"
+          },
+          {
+            "label": "swapping",
+            "offset": 20,
+            "slot": "7",
+            "type": "t_bool",
+            "contract": "LABS",
+            "src": "contracts\\Labs.sol:70"
+          },
+          {
+            "label": "devWallet",
+            "offset": 0,
+            "slot": "8",
+            "type": "t_address_payable",
+            "contract": "LABS",
+            "src": "contracts\\Labs.sol:72"
+          },
+          {
+            "label": "buyTax",
+            "offset": 0,
+            "slot": "9",
+            "type": "t_uint256",
+            "contract": "LABS",
+            "src": "contracts\\Labs.sol:73"
+          },
+          {
+            "label": "sellTax",
+            "offset": 0,
+            "slot": "10",
+            "type": "t_uint256",
+            "contract": "LABS",
+            "src": "contracts\\Labs.sol:74"
+          },
+          {
+            "label": "swapTokensAtAmount",
+            "offset": 0,
+            "slot": "11",
+            "type": "t_uint256",
+            "contract": "LABS",
+            "src": "contracts\\Labs.sol:75"
+          },
+          {
+            "label": "maxTransfer",
+            "offset": 0,
+            "slot": "12",
+            "type": "t_uint256",
+            "contract": "LABS",
+            "src": "contracts\\Labs.sol:76"
+          },
+          {
+            "label": "_isExcludedFromFees",
+            "offset": 0,
+            "slot": "13",
+            "type": "t_mapping(t_address,t_bool)",
+            "contract": "LABS",
+            "src": "contracts\\Labs.sol:83"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_address_payable": {
+            "label": "address payable",
+            "numberOfBytes": "20"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_contract(IUniswapV2Router02)1832": {
+            "label": "contract IUniswapV2Router02",
+            "numberOfBytes": "20"
+          },
+          "t_mapping(t_address,t_bool)": {
+            "label": "mapping(address => bool)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_mapping(t_address,t_uint256))": {
+            "label": "mapping(address => mapping(address => uint256))",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_uint256)": {
+            "label": "mapping(address => uint256)",
+            "numberOfBytes": "32"
+          },
+          "t_string_storage": {
+            "label": "string",
+            "numberOfBytes": "32"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          }
+        },
+        "namespaces": {}
+      }
+    },
+    "fa6374636ee367d3e971da7bf4f16592e44fd20c4cdd49995a2375ff3fb01ba2": {
+      "address": "0x973eAB8fBd1A7AA46fD8b2358842d0e771B48bc3",
+      "txHash": "0xd9b0fec0768297d304586a565cf8a79014be4459510545956577b7c4cb885369",
+      "layout": {
+        "solcVersion": "0.8.24",
+        "storage": [
+          {
+            "label": "_balances",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_mapping(t_address,t_uint256)",
+            "contract": "ERC20",
+            "src": "contracts\\ERC20.sol:154"
+          },
+          {
+            "label": "_allowances",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_mapping(t_address,t_mapping(t_address,t_uint256))",
+            "contract": "ERC20",
+            "src": "contracts\\ERC20.sol:156"
+          },
+          {
+            "label": "_totalSupply",
+            "offset": 0,
+            "slot": "2",
+            "type": "t_uint256",
+            "contract": "ERC20",
+            "src": "contracts\\ERC20.sol:158"
+          },
+          {
+            "label": "_name",
+            "offset": 0,
+            "slot": "3",
+            "type": "t_string_storage",
+            "contract": "ERC20",
+            "src": "contracts\\ERC20.sol:160"
+          },
+          {
+            "label": "_symbol",
+            "offset": 0,
+            "slot": "4",
+            "type": "t_string_storage",
+            "contract": "ERC20",
+            "src": "contracts\\ERC20.sol:161"
+          },
+          {
+            "label": "initialized",
+            "offset": 0,
+            "slot": "5",
+            "type": "t_bool",
+            "contract": "LibraryLockDataLayout",
+            "src": "contracts\\Labs.sol:40"
+          },
+          {
+            "label": "isDirect",
+            "offset": 1,
+            "slot": "5",
+            "type": "t_bool",
+            "contract": "LibraryLockDataLayout",
+            "src": "contracts\\Labs.sol:41"
+          },
+          {
+            "label": "owner",
+            "offset": 2,
+            "slot": "5",
+            "type": "t_address",
+            "contract": "LABSDataLayout",
+            "src": "contracts\\Labs.sol:63"
+          },
+          {
+            "label": "uniswapV2Router",
+            "offset": 0,
+            "slot": "6",
+            "type": "t_contract(IUniswapV2Router02)1832",
+            "contract": "LABSDataLayout",
+            "src": "contracts\\Labs.sol:64"
+          },
+          {
+            "label": "uniswapV2Pair",
+            "offset": 0,
+            "slot": "7",
+            "type": "t_address",
+            "contract": "LABSDataLayout",
+            "src": "contracts\\Labs.sol:65"
+          },
+          {
+            "label": "swapping",
+            "offset": 20,
+            "slot": "7",
+            "type": "t_bool",
+            "contract": "LABS",
+            "src": "contracts\\Labs.sol:70"
+          },
+          {
+            "label": "devWallet",
+            "offset": 0,
+            "slot": "8",
+            "type": "t_address_payable",
+            "contract": "LABS",
+            "src": "contracts\\Labs.sol:72"
+          },
+          {
+            "label": "buyTax",
+            "offset": 0,
+            "slot": "9",
+            "type": "t_uint256",
+            "contract": "LABS",
+            "src": "contracts\\Labs.sol:73"
+          },
+          {
+            "label": "sellTax",
+            "offset": 0,
+            "slot": "10",
+            "type": "t_uint256",
+            "contract": "LABS",
+            "src": "contracts\\Labs.sol:74"
+          },
+          {
+            "label": "swapTokensAtAmount",
+            "offset": 0,
+            "slot": "11",
+            "type": "t_uint256",
+            "contract": "LABS",
+            "src": "contracts\\Labs.sol:75"
+          },
+          {
+            "label": "maxTransfer",
+            "offset": 0,
+            "slot": "12",
+            "type": "t_uint256",
+            "contract": "LABS",
+            "src": "contracts\\Labs.sol:76"
+          },
+          {
+            "label": "_isExcludedFromFees",
+            "offset": 0,
+            "slot": "13",
+            "type": "t_mapping(t_address,t_bool)",
+            "contract": "LABS",
+            "src": "contracts\\Labs.sol:83"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_address_payable": {
+            "label": "address payable",
+            "numberOfBytes": "20"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_contract(IUniswapV2Router02)1832": {
+            "label": "contract IUniswapV2Router02",
+            "numberOfBytes": "20"
+          },
+          "t_mapping(t_address,t_bool)": {
+            "label": "mapping(address => bool)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_mapping(t_address,t_uint256))": {
+            "label": "mapping(address => mapping(address => uint256))",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_uint256)": {
+            "label": "mapping(address => uint256)",
+            "numberOfBytes": "32"
+          },
+          "t_string_storage": {
+            "label": "string",
+            "numberOfBytes": "32"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          }
+        },
+        "namespaces": {}
+      }
+    }
+  }
+}
