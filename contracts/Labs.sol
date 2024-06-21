@@ -117,14 +117,14 @@ contract LABS is ERC20, Proxiable, LABSDataLayout {
     /** @notice Sets contract owner.
      * @param _owner  Address of the new owner.
      */
-    function setOwner(address _owner) public _onlyOwner delegatedOnly {
+    function setOwner(address _owner) public _onlyOwner {
         owner = _owner;
     }
 
     /** @notice Allows the owner to immediately update the contract logic.
      * @param newCode Address of the new logic contract.
      */
-    function updateCode(address newCode) public _onlyOwner delegatedOnly {
+    function updateCode(address newCode) public _onlyOwner {
         updateCodeAddress(newCode);
     }
 
