@@ -21,7 +21,7 @@ describe("WIZDOG Token", function () {
     await uniswapRouter.waitForDeployment();
 
     // Deploy WIZDOG logic contract
-    WIZDOG = await ethers.getContractFactory("WIZDOG");
+    WIZDOG = await ethers.getContractFactory("Wizdog");
     wizdogLogic = await WIZDOG.deploy();
     await wizdogLogic.waitForDeployment();
 
@@ -29,7 +29,7 @@ describe("WIZDOG Token", function () {
     const WIZDOGProxy = await ethers.getContractFactory("WIZDOGProxy");
     
     // Prepare the constructor data for the WIZDOG contract
-    const constructData = WIZDOG.interface.encodeFunctionData("WIZDOGConstructor");
+    const constructData = WIZDOG.interface.encodeFunctionData("WizdogConstructor");
 
     wizdogProxy = await WIZDOGProxy.deploy(constructData, await wizdogLogic.getAddress());
     await wizdogProxy.waitForDeployment();
@@ -121,7 +121,7 @@ describe("WIZDOG Token", function () {
     });
 
     it("Should allow owner to update code", async function () {
-      const NewWIZDOG = await ethers.getContractFactory("WIZDOG");
+      const NewWIZDOG = await ethers.getContractFactory("Wizdog");
       const newWizdogLogic = await NewWIZDOG.deploy();
       await newWizdogLogic.waitForDeployment();
 

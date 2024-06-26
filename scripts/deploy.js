@@ -4,7 +4,7 @@ async function main() {
   console.log("Deploying contracts with the account:", deployer.address);
   
   // Deploy the logic contract (WIZDOG.sol)
-  const WIZDOG = await ethers.getContractFactory("WIZDOG");
+  const WIZDOG = await ethers.getContractFactory("Wizdog");
   console.log("Deploying WIZDOG logic contract...");
   const wizdogLogic = await WIZDOG.deploy();
   await wizdogLogic.waitForDeployment();
