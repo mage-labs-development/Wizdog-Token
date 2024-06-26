@@ -59,13 +59,13 @@ contract LibraryLock is LibraryLockDataLayout {
     }
 }
 
-contract LABSDataLayout is LibraryLock {
+contract WizdogDataLayout is LibraryLock {
     address public owner;
     IUniswapV2Router02 public uniswapV2Router;
     address public uniswapV2Pair;
 }
 
-contract LABS is ERC20, Proxiable, LABSDataLayout {
+contract Wizdog is ERC20, Proxiable, WizdogDataLayout {
 
     bool private swapping;
 
@@ -95,9 +95,9 @@ contract LABS is ERC20, Proxiable, LABSDataLayout {
         
     }
 
-    function LABSConstructor() public {
+    function WizdogConstructor() public {
         require(!initialized);
-        ERCConstructor("LABS", "LABS");
+        ERCConstructor("Magelabs", "WIZDOG");
         owner = msg.sender;
         devWallet = payable(msg.sender);
         _mint(msg.sender, 1000000000 * 10 ** 18);
