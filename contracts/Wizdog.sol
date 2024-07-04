@@ -45,14 +45,6 @@ contract LibraryLock is LibraryLockDataLayout {
     // Ensures no one can manipulate the Logic Contract once it is deployed.
     // PARITY WALLET HACK PREVENTION
 
-    modifier delegatedOnly() {
-        require(
-            initialized,
-            "The library is locked. No direct 'call' is allowed"
-        );
-        require(isDirect, "Direct calls only");
-        _;
-    }
     function initialize() internal {
         initialized = true;
         isDirect = false;
@@ -66,7 +58,6 @@ contract WizdogDataLayout is LibraryLock {
 }
 
 contract Wizdog is ERC20, Proxiable, WizdogDataLayout {
-
     bool private swapping;
 
     address payable public devWallet;
@@ -89,11 +80,14 @@ contract Wizdog is ERC20, Proxiable, WizdogDataLayout {
     );
     event ExcludeFromFees(address indexed account, bool isExcluded);
     event ExcludeMultipleAccountsFromFees(address[] accounts, bool isExcluded);
+    event SetOwner(address newOwner);
+    event UpdateCode(address newAddress);
+    event SetUniswapV2Router(address newRouter);
+    event SetDevWallet(address newWallet);
+    event SetSwapAtAmount(uint256 amount);
 
     /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor() {
-        
-    }
+    constructor() {}
 
     function WizdogConstructor() public {
         require(!initialized);
@@ -119,6 +113,7 @@ contract Wizdog is ERC20, Proxiable, WizdogDataLayout {
      */
     function setOwner(address _owner) public _onlyOwner {
         owner = _owner;
+        emit SetOwner(_owner);
     }
 
     /** @notice Allows the owner to immediately update the contract logic.
@@ -126,12 +121,16 @@ contract Wizdog is ERC20, Proxiable, WizdogDataLayout {
      */
     function updateCode(address newCode) public _onlyOwner {
         updateCodeAddress(newCode);
+        emit UpdateCode(newCode);
     }
 
     function setUniswapV2Router(address _router) external _onlyOwner {
         uniswapV2Router = IUniswapV2Router02(_router);
-        uniswapV2Pair = IUniswapV2Factory(uniswapV2Router.factory())
-            .createPair(address(this), uniswapV2Router.WETH());
+        uniswapV2Pair = IUniswapV2Factory(uniswapV2Router.factory()).createPair(
+            address(this),
+            uniswapV2Router.WETH()
+        );
+        emit SetUniswapV2Router(_router);
     }
 
     function excludeFromFees(address account, bool excluded) public _onlyOwner {
@@ -157,10 +156,12 @@ contract Wizdog is ERC20, Proxiable, WizdogDataLayout {
 
     function setDevWallet(address payable wallet) external _onlyOwner {
         devWallet = wallet;
+        emit SetDevWallet(wallet);
     }
 
     function setSwapAtAmount(uint256 value) external _onlyOwner {
         swapTokensAtAmount = value;
+        emit SetSwapAtAmount(value);
     }
 
     function isExcludedFromFees(address account) public view returns (bool) {
@@ -176,7 +177,6 @@ contract Wizdog is ERC20, Proxiable, WizdogDataLayout {
         require(to != address(0), "ERC20: transfer to the zero address");
 
         if (amount == 0) {
-            super._transfer(from, to, 0);
             return;
         }
 
@@ -223,7 +223,6 @@ contract Wizdog is ERC20, Proxiable, WizdogDataLayout {
         }
     }
 
-
     function setBuyTaxFee(uint256 _taxFee) public _onlyOwner {
         buyTax = _taxFee;
     }
@@ -241,7 +240,8 @@ contract Wizdog is ERC20, Proxiable, WizdogDataLayout {
         swapTokensForETH(tokens);
         uint256 newBalance = address(this).balance - initialBalance;
 
-        devWallet.transfer(newBalance);
+        (bool success, ) = devWallet.call{value: newBalance}("");
+        require(success, "Fee transfer failed");
     }
 
     function swapTokensForETH(uint256 tokenAmount) private {
