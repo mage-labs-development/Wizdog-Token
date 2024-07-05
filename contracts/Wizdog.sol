@@ -87,7 +87,9 @@ contract Wizdog is ERC20, Proxiable, WizdogDataLayout {
     event SetSwapAtAmount(uint256 amount);
 
     /// @custom:oz-upgrades-unsafe-allow constructor
-    constructor() {}
+    constructor() {
+        initialize();
+    }
 
     function WizdogConstructor() public {
         require(!initialized);
