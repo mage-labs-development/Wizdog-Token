@@ -5,6 +5,10 @@ pragma solidity ^0.8.0;
 import "./ERC20.sol";
 import "./interfaces/IUniswapV2Router02.sol";
 import "./interfaces/IUniswapV2Factory.sol";
+import {IRouterClient} from "../.chainlink/contracts/src/v0.8/ccip/interfaces/IRouterClient.sol";
+import {Client} from "../.chainlink/contracts/src/v0.8/ccip/libraries/Client.sol";
+import {SafeERC20} from "../.chainlink/contracts/src/v0.8/vendor/openzeppelin-solidity/v4.8.3/contracts/token/ERC20/utils/SafeERC20.sol";
+import {EnumerableMap} from "../.chainlink/contracts/src/v0.8/vendor/openzeppelin-solidity/v4.8.3/contracts/utils/structs/EnumerableMap.sol";
 
 /**
  * @title Ownable
@@ -55,9 +59,19 @@ contract WizdogDataLayout is LibraryLock {
     address public owner;
     IUniswapV2Router02 public uniswapV2Router;
     address public uniswapV2Pair;
+    mapping(address => bool) public _isExcludedFromFees;
+    mapping(uint64 => bool) public allowlistedDestinationChains;
+    mapping(uint64 => bool) public allowlistedSourceChains;
+    mapping(address => bool) public allowlistedSenders;
+    IRouterClient public s_router;
+    IERC20 public s_linkToken;
+    
 }
 
 contract Wizdog is ERC20, Proxiable, WizdogDataLayout {
+    using SafeERC20 for IERC20;
+    using EnumerableMap for EnumerableMap.Bytes32ToUintMap;
+
     bool private swapping;
 
     address payable public devWallet;
@@ -65,13 +79,45 @@ contract Wizdog is ERC20, Proxiable, WizdogDataLayout {
     uint256 public sellTax;
     uint256 public swapTokensAtAmount; // Minimum tokens required for swap
     uint256 public maxTransfer; // Maximum transfer limit
+    
 
     modifier _onlyOwner() {
         require(msg.sender == owner);
         _;
     }
 
-    mapping(address => bool) private _isExcludedFromFees;
+    /// @dev Modifier that checks the receiver address is not 0.
+    /// @param _receiver The receiver address.
+    modifier validateReceiver(address _receiver) {
+        if (_receiver == address(0)) revert InvalidReceiverAddress();
+        _;
+    }
+
+    /// @dev Modifier to allow only the contract itself to execute a function.
+    /// Throws an exception if called by any account other than the contract itself.
+    modifier onlySelf() {
+        if (msg.sender != address(this)) revert OnlySelf();
+        _;
+    }
+
+    /// @dev Modifier that checks if the chain with the given destinationChainSelector is allowlisted.
+    /// @param _destinationChainSelector The selector of the destination chain.
+    modifier onlyAllowlistedDestinationChain(uint64 _destinationChainSelector) {
+        if (!allowlistedDestinationChains[_destinationChainSelector])
+            revert DestinationChainNotAllowlisted(_destinationChainSelector);
+        _;
+    }
+
+    /// @dev Modifier that checks if the chain with the given sourceChainSelector is allowlisted and if the sender is allowlisted.
+    /// @param _sourceChainSelector The selector of the destination chain.
+    /// @param _sender The address of the sender.
+    modifier onlyAllowlisted(uint64 _sourceChainSelector, address _sender) {
+        if (!allowlistedSourceChains[_sourceChainSelector])
+            revert SourceChainNotAllowed(_sourceChainSelector);
+        if (!allowlistedSenders[_sender]) revert SenderNotAllowed(_sender);
+        _;
+    }
+
 
     event SwapAndLiquify(
         uint256 tokensSwapped,
@@ -86,12 +132,48 @@ contract Wizdog is ERC20, Proxiable, WizdogDataLayout {
     event SetDevWallet(address newWallet);
     event SetSwapAtAmount(uint256 amount);
 
+   
+    //CCIP Events
+    error NotEnoughBalance(uint256 currentBalance, uint256 calculatedFees); // Used to make sure contract has enough balance to cover the fees.
+    error NothingToWithdraw(); // Used when trying to withdraw Ether but there's nothing to withdraw.
+    error FailedToWithdrawEth(address owner, address target, uint256 value); // Used when the withdrawal of Ether fails.
+    error DestinationChainNotAllowlisted(uint64 destinationChainSelector); // Used when the destination chain has not been allowlisted by the contract owner.
+    error InvalidReceiverAddress(); // Used when the receiver address is 0.
+    error SourceChainNotAllowed(uint64 sourceChainSelector); // Used when the source chain has not been allowlisted by the contract owner.
+    error SenderNotAllowed(address sender); // Used when the sender has not been allowlisted by the contract owner.
+    error OnlySelf(); // Used when a function is called outside of the contract itself.
+    error ErrorCase(); // Used when simulating a revert during message processing.
+    error MessageNotFailed(bytes32 messageId);
+    event TokensTransferredCCIP(
+        bytes32 indexed messageId, // The unique ID of the message.
+        uint64 indexed destinationChainSelector, // The chain selector of the destination chain.
+        address receiver, // The address of the receiver on the destination chain.
+        address token, // The token address that was transferred.
+        uint256 tokenAmount, // The token amount that was transferred.
+        address feeToken, // the token address used to pay CCIP fees.
+        uint256 fees // The fees paid for sending the message.
+    );
+
+    enum ErrorCode {
+        // RESOLVED is first so that the default value is resolved.
+        RESOLVED,
+        // Could have any number of error codes here.
+        FAILED
+    }
+
+    struct FailedMessage {
+        bytes32 messageId;
+        ErrorCode errorCode;
+    }
+
+
     /// @custom:oz-upgrades-unsafe-allow constructor
+     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         initialize();
     }
 
-    function WizdogConstructor() public {
+    function WizdogConstructor(address _router, address _link) public {
         require(!initialized);
         ERCConstructor("Magelabs", "WIZDOG");
         owner = msg.sender;
@@ -101,6 +183,9 @@ contract Wizdog is ERC20, Proxiable, WizdogDataLayout {
         sellTax = 5;
         swapTokensAtAmount = 100000 * 10 ** decimals(); // Minimum tokens required for swap
         maxTransfer = 50000000 * 10 ** decimals(); // Maximum transfer limit
+
+        s_router = IRouterClient(_router);
+        s_linkToken = IERC20(_link);
 
         // exclude from paying fees or having max transaction amount
         excludeFromFees(owner, true);
@@ -168,6 +253,28 @@ contract Wizdog is ERC20, Proxiable, WizdogDataLayout {
 
     function isExcludedFromFees(address account) public view returns (bool) {
         return _isExcludedFromFees[account];
+    }
+
+    /// @dev Updates the allowlist status of a destination chain for transactions.
+    /// @notice This function can only be called by the owner.
+    /// @param _destinationChainSelector The selector of the destination chain to be updated.
+    /// @param allowed The allowlist status to be set for the destination chain.
+    function allowlistDestinationChain(
+        uint64 _destinationChainSelector,
+        bool allowed
+    ) external _onlyOwner {
+        allowlistedDestinationChains[_destinationChainSelector] = allowed;
+    }
+
+    /// @dev Updates the allowlist status of a source chain
+    /// @notice This function can only be called by the owner.
+    /// @param _sourceChainSelector The selector of the source chain to be updated.
+    /// @param allowed The allowlist status to be set for the source chain.
+    function allowlistSourceChain(
+        uint64 _sourceChainSelector,
+        bool allowed
+    ) external _onlyOwner {
+        allowlistedSourceChains[_sourceChainSelector] = allowed;
     }
 
     function _transfer(
@@ -260,5 +367,105 @@ contract Wizdog is ERC20, Proxiable, WizdogDataLayout {
             address(this),
             block.timestamp
         );
+    }
+
+    /// @notice Transfer tokens to receiver on the destination chain.
+    /// @notice Pay in native gas such as ETH on Ethereum or MATIC on Polgon.
+    /// @notice the token must be in the list of supported tokens.
+    /// @notice This function can only be called by the owner.
+    /// @dev Assumes your contract has sufficient native gas like ETH on Ethereum or MATIC on Polygon.
+    /// @param _destinationChainSelector The identifier (aka selector) for the destination blockchain.
+    /// @param _receiver The address of the recipient on the destination blockchain.
+    /// @param _amount token amount.
+    /// @return messageId The ID of the message that was sent.
+    function transferTokensPayNative(
+        uint64 _destinationChainSelector,
+        address _receiver,
+        uint256 _amount
+    )
+        payable
+        external
+        onlyAllowlistedDestinationChain(_destinationChainSelector)
+        validateReceiver(_receiver)
+        returns (bytes32 messageId)
+    {
+        address _token = address(this);
+        // Create an EVM2AnyMessage struct in memory with necessary information for sending a cross-chain message
+        // address(0) means fees are paid in native gas
+        Client.EVM2AnyMessage memory evm2AnyMessage = _buildCCIPMessage(
+            _receiver,
+            _token,
+            _amount,
+            address(0)
+        );
+
+        // Get the fee required to send the message
+        uint256 fees = s_router.getFee(
+            _destinationChainSelector,
+            evm2AnyMessage
+        );
+
+        if (fees > msg.value)
+            revert NotEnoughBalance(msg.value, fees);
+
+        // approve the Router to spend tokens on contract's behalf. It will spend the amount of the given token
+        IERC20(_token).approve(address(s_router), _amount);
+
+        // Send the message through the router and store the returned message ID
+        messageId = s_router.ccipSend{value: fees}(
+            _destinationChainSelector,
+            evm2AnyMessage
+        );
+
+        // Emit an event with message details
+        emit TokensTransferredCCIP(
+            messageId,
+            _destinationChainSelector,
+            _receiver,
+            _token,
+            _amount,
+            address(0),
+            fees
+        );
+
+        // Return the message ID
+        return messageId;
+    }
+    
+
+    /// @notice Construct a CCIP message.
+    /// @dev This function will create an EVM2AnyMessage struct with all the necessary information for tokens transfer.
+    /// @param _receiver The address of the receiver.
+    /// @param _token The token to be transferred.
+    /// @param _amount The amount of the token to be transferred.
+    /// @param _feeTokenAddress The address of the token used for fees. Set address(0) for native gas.
+    /// @return Client.EVM2AnyMessage Returns an EVM2AnyMessage struct which contains information for sending a CCIP message.
+    function _buildCCIPMessage(
+        address _receiver,
+        address _token,
+        uint256 _amount,
+        address _feeTokenAddress
+    ) private pure returns (Client.EVM2AnyMessage memory) {
+        // Set the token amounts
+        Client.EVMTokenAmount[]
+            memory tokenAmounts = new Client.EVMTokenAmount[](1);
+        tokenAmounts[0] = Client.EVMTokenAmount({
+            token: _token,
+            amount: _amount
+        });
+
+        // Create an EVM2AnyMessage struct in memory with necessary information for sending a cross-chain message
+        return
+            Client.EVM2AnyMessage({
+                receiver: abi.encode(_receiver), // ABI-encoded receiver address
+                data: "", // No data
+                tokenAmounts: tokenAmounts, // The amount and type of token being transferred
+                extraArgs: Client._argsToBytes(
+                    // Additional arguments, setting gas limit to 0 as we are not sending any data
+                    Client.EVMExtraArgsV1({gasLimit: 0})
+                ),
+                // Set the feeToken to a feeTokenAddress, indicating specific asset will be used for fees
+                feeToken: _feeTokenAddress
+            });
     }
 }
