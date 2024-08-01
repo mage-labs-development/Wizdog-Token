@@ -63,26 +63,37 @@ contract WizdogDataLayout is LibraryLock {
     mapping(uint64 => bool) public allowlistedDestinationChains;
     mapping(uint64 => bool) public allowlistedSourceChains;
     mapping(address => bool) public allowlistedSenders;
+    address public allowlistedBurner;
+    address public allowlistedMinter;
+    uint256 public i_maxSupply;
     IRouterClient public s_router;
     IERC20 public s_linkToken;
-    
-}
 
-contract Wizdog is ERC20, Proxiable, WizdogDataLayout {
-    using SafeERC20 for IERC20;
-    using EnumerableMap for EnumerableMap.Bytes32ToUintMap;
-
-    bool private swapping;
+    bool public swapping;
 
     address payable public devWallet;
     uint256 public buyTax;
     uint256 public sellTax;
     uint256 public swapTokensAtAmount; // Minimum tokens required for swap
     uint256 public maxTransfer; // Maximum transfer limit
-    
+}
+
+contract Wizdog is ERC20, Proxiable, WizdogDataLayout {
+    using SafeERC20 for IERC20;
+    using EnumerableMap for EnumerableMap.Bytes32ToUintMap;
 
     modifier _onlyOwner() {
         require(msg.sender == owner);
+        _;
+    }
+
+    modifier _onlyBurner() {
+        require(msg.sender == allowlistedBurner);
+        _;
+    }
+
+    modifier _onlyMinter() {
+        require(msg.sender == allowlistedMinter);
         _;
     }
 
@@ -118,6 +129,10 @@ contract Wizdog is ERC20, Proxiable, WizdogDataLayout {
         _;
     }
 
+    modifier validAddress(address recipient) virtual {
+        if (recipient == address(this)) revert();
+        _;
+    }
 
     event SwapAndLiquify(
         uint256 tokensSwapped,
@@ -132,7 +147,6 @@ contract Wizdog is ERC20, Proxiable, WizdogDataLayout {
     event SetDevWallet(address newWallet);
     event SetSwapAtAmount(uint256 amount);
 
-   
     //CCIP Events
     error NotEnoughBalance(uint256 currentBalance, uint256 calculatedFees); // Used to make sure contract has enough balance to cover the fees.
     error NothingToWithdraw(); // Used when trying to withdraw Ether but there's nothing to withdraw.
@@ -153,6 +167,7 @@ contract Wizdog is ERC20, Proxiable, WizdogDataLayout {
         address feeToken, // the token address used to pay CCIP fees.
         uint256 fees // The fees paid for sending the message.
     );
+    error MaxSupplyExceeded(uint256 supplyAfterMint);
 
     enum ErrorCode {
         // RESOLVED is first so that the default value is resolved.
@@ -166,9 +181,7 @@ contract Wizdog is ERC20, Proxiable, WizdogDataLayout {
         ErrorCode errorCode;
     }
 
-
     /// @custom:oz-upgrades-unsafe-allow constructor
-     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         initialize();
     }
@@ -179,6 +192,7 @@ contract Wizdog is ERC20, Proxiable, WizdogDataLayout {
         owner = msg.sender;
         devWallet = payable(msg.sender);
         _mint(msg.sender, 1000000000 * 10 ** 18);
+        i_maxSupply = totalSupply();
         buyTax = 5;
         sellTax = 5;
         swapTokensAtAmount = 100000 * 10 ** decimals(); // Minimum tokens required for swap
@@ -275,6 +289,14 @@ contract Wizdog is ERC20, Proxiable, WizdogDataLayout {
         bool allowed
     ) external _onlyOwner {
         allowlistedSourceChains[_sourceChainSelector] = allowed;
+    }
+
+    function setAllowedCCIPBurner(address _burner) external _onlyOwner {
+        allowlistedBurner = _burner;
+    }
+
+    function setAllowedCCIPMinter(address _minter) external _onlyOwner {
+        allowlistedMinter = _minter;
     }
 
     function _transfer(
@@ -383,8 +405,8 @@ contract Wizdog is ERC20, Proxiable, WizdogDataLayout {
         address _receiver,
         uint256 _amount
     )
-        payable
         external
+        payable
         onlyAllowlistedDestinationChain(_destinationChainSelector)
         validateReceiver(_receiver)
         returns (bytes32 messageId)
@@ -405,8 +427,7 @@ contract Wizdog is ERC20, Proxiable, WizdogDataLayout {
             evm2AnyMessage
         );
 
-        if (fees > msg.value)
-            revert NotEnoughBalance(msg.value, fees);
+        if (fees > msg.value) revert NotEnoughBalance(msg.value, fees);
 
         // approve the Router to spend tokens on contract's behalf. It will spend the amount of the given token
         IERC20(_token).approve(address(s_router), _amount);
@@ -431,7 +452,6 @@ contract Wizdog is ERC20, Proxiable, WizdogDataLayout {
         // Return the message ID
         return messageId;
     }
-    
 
     /// @notice Construct a CCIP message.
     /// @dev This function will create an EVM2AnyMessage struct with all the necessary information for tokens transfer.
@@ -468,4 +488,26 @@ contract Wizdog is ERC20, Proxiable, WizdogDataLayout {
                 feeToken: _feeTokenAddress
             });
     }
+
+    /// @dev Disallows minting to address(0)
+    /// @dev Increases the total supply.
+    function mint(
+        address account,
+        uint256 amount
+    ) external _onlyMinter validAddress(account) {
+        if (i_maxSupply != 0 && totalSupply() + amount > i_maxSupply)
+            revert MaxSupplyExceeded(totalSupply() + amount);
+        if (account == address(0))
+            revert InvalidReceiverAddress();
+        _mint(account, amount);
+    }
+
+    /// @dev Decreases the total supply.
+    function burn(uint256 amount) public _onlyBurner {
+        if (msg.sender == address(0))
+            revert InvalidReceiverAddress();
+        _burn(msg.sender, amount);
+    }
+
+    
 }
